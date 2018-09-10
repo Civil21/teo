@@ -7,6 +7,8 @@ const fs = require("fs");
 const token = require("./token.json");
 //зберігає останні данні про користувача і його повідомлення
 let lastInfo = require("./lastInfo.json");
+//зберіграє нібр реплік для спілкування та взаємодії
+let dictionary = require(".ua/dictionary.json"); 
 
 //реакція на запуск 
 teo.on("ready", async()=>{
@@ -25,15 +27,44 @@ teo.on("message", message => {
     //визначаємо де будемо спілкуватись (на каналі чи в приватних повідомленнях)
     let targetSend = message.guild?message.channel:user;
 
-    if(lastInfo[user.id]){
-        targetSend.send(`Минулий раз користувач з id ${user.id}(${user.username}) сказав ${lastInfo[user.id].message}`);
+
+    console.log(`test 1 ${lastInfo[user.id]!=null}`);
+    console.log(`test 2 ${message.createdTimestamp-lastInfo[user.id].time<=60000}`);
+    console.log(`test 3 ${lastInfo[user.id].answer != ""}`);
+    if(lastInfo[user.id] 
+        && lastInfo[user.id].answer != "" 
+        && message.createdTimestamp-lastInfo[user.id].time<=2400000){
+        //targetSend.send(`Минулий раз користувач з id ${user.id}(${user.username}) сказав ${lastInfo[user.id].message}`);
+
+        if(dictionary[lastInfo[user.id].answer] && dictionary[lastInfo[user.id].answer].indexOf(message.content.toLowerCase())<0){
+            answers = dictionary[lastInfo[user.id].answer];
+            console.log(answers);
+        }else{
+            answers = []
+            console.log("NEW");
+        }
+        answers.push(message.content.toLowerCase());
+        dictionary[lastInfo[user.id].answer]= answers;
+        fs.writeFile("./dictionary.json", JSON.stringify(dictionary), (err) => {
+            if (err) console.error(err)
+        });
     }
-    lastInfo[user.id]={"message" : message.content};
+    let answer 
+    console.log(dictionary[message.content.toLowerCase()]);
+    if(dictionary[message.content.toLowerCase()]){
+        console.log(dictionary);
+        answers = dictionary[message.content.toLowerCase()];
+        let r=Math.floor((Math.random(1) * answers.length));
+        answer = answers[r];
+        targetSend.send(answer);
+    }
+
+    lastInfo[user.id]={"message" : message.content, "time" : message.createdTimestamp, "answer": answer };
     fs.writeFile("./lastInfo.json", JSON.stringify(lastInfo), (err) => {
         if (err) console.error(err)
     });
     console.log(lastInfo);
-    targetSend.send(`Користувач з id ${user.id}(${user.username}) сказав ${message.content}`);
+    //targetSend.send(`Користувач з id ${user.id}(${user.username}) сказав ${message.content}`);
     
     //targetSend.send("Вітаю! Я Тео.");
 
